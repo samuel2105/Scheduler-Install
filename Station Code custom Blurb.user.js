@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Universal Station Copy Button - Custom Label
+// @name         Station Copy custom Blurb - Custom Label
 // @namespace    http://tampermonkey.net/
 // @version      3.1
 // @description  Bottom-right button to copy station code + space with custom label, no copied feedback
