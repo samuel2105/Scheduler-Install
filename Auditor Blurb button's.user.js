@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Slack GT Handler – Enhanced GT S Red Label Fix with Fallback
+// @name         Auditor Blurb's
 // @namespace    http://tampermonkey.net/
 // @version      7.4
 // @description  GT Buttons for Slack — with fallback Custom button for unmatched station codes ❌🟦🛠️
