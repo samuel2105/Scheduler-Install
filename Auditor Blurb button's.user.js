@@ -18,7 +18,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '8.3';
+    const VERSION = '8.4';
     console.log(`🚀 Auditor Blurb's v${VERSION} initializing...`);
 
     const ADD_CUSTOM_FALLBACK = true;
@@ -333,3 +333,4 @@
     document.head.appendChild(style);
 
 })();
+
