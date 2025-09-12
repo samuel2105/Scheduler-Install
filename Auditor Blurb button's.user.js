@@ -1,9 +1,10 @@
 // ==UserScript==
-// @name         Auditor Blurb's (Full Custom + Patterns)
+// @name         Auditor Blurb's (Full Custom + Patterns, Custom Right)
 // @namespace    http://tampermonkey.net/
-// @author       samumzz(Samuel Sumanth kumar M)
-// @version      8.3
-// @description  GT Buttons for Slack — all patterns with fallback Custom button
+// @author       samumzz(Samuel Sumanth M)
+// @version      8.4
+// @description  GT Buttons for Slack — all patterns with fallback Custom button (v8.4: cursor fix + UI tweaks)
+// @description  GT Buttons for Slack — all patterns with fallback Custom button on the right
 // @match        https://app.slack.com/client/E015GUGD2V6/C07RAGBM36G*
 // @match        https://app.slack.com/client/E015GUGD2V6/C07NS9SLFQC*
 // @match        https://app.slack.com/client/E015GUGD2V6/C07N98FP207*
@@ -17,16 +18,12 @@
 (function () {
     'use strict';
 
-    const VERSION = '8.2';
+    const VERSION = '8.3';
     console.log(`🚀 Auditor Blurb's v${VERSION} initializing...`);
 
-    // Always add a Custom button
     const ADD_CUSTOM_FALLBACK = true;
-
-    // Regex for extracting station codes if no pattern matches
     const STATION_CODE_REGEX = /\b([A-Z]{3}[0-9])\b/;
 
-    // Define all patterns
     const patterns = [
         { regex: /^([A-Z]{3}[0-9])\s*GT\s*R\s*\?$/i, green: s => `${s} GT R`, yellow: s => `${s} Hold`, red: s => `${s} incorrect checklist`, yellowLabel: 'Hold' },
         { regex: /^([A-Z]{3}[0-9])\s*GT\s*DPO\s*\?$/i, green: s => `${s} GT DPO`, red: s => `${s} Incorrect`, yellow: s => `${s} Hold`, yellowLabel: 'Hold' },
@@ -61,7 +58,6 @@
         { regex: /^([A-Z]{3}[0-9])\s*(\d+)\s*Un-?planned\s*DSP'?S\s*\?$/i, gray: s => `${s} checking...`, green: s => `${s} GT G`, yellow: s => `${s} Hold`, yellowLabel: 'Hold', greenLabel: 'GT G' },
     ];
 
-    // Selectors for Slack DOM
     const messageContainerSelectors = [
         '[data-qa="message_container"]',
         '[data-qa="virtual-list-item"]',
@@ -152,32 +148,42 @@
         btn.textContent = label;
         btn.style.cssText = `margin-left:6px;padding:2px 6px;font-size:12px;border:none;border-radius:4px;cursor:pointer;background:${color};color:white;`;
         btn.addEventListener('click', async (ev) => {
-            ev.stopPropagation();
+           ev.stopPropagation();
             const stationCode = (typeof message === 'string') ? message.split(' ')[0] : '';
             if (stationCode) {
-                await safeCopyToClipboard(stationCode);
+            await safeCopyToClipboard(stationCode);
+    }
+
+    const inputDiv = findInputElement();
+    if (!inputDiv) return;
+
+    const fullText = message || stationCode || '';
+    try {
+        inputDiv.focus();
+        inputDiv.textContent = fullText;
+        inputDiv.innerText = fullText;
+        inputDiv.dispatchEvent(new InputEvent('input', { bubbles: true, data: fullText, inputType: 'insertText' }));
+
+        // ✅ Move cursor to the right end
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(inputDiv);
+        range.collapse(false); // move cursor to end
+        sel.removeAllRanges();
+        sel.addRange(range);
+
+    } catch (err) { }
+
+    if (send) {
+        setTimeout(() => {
+            if (!trySendUsingButton()) {
+                const ev = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', which: 13, keyCode: 13 });
+                inputDiv.dispatchEvent(ev);
             }
+        }, 180);
+    }
+});
 
-            const inputDiv = findInputElement();
-            if (!inputDiv) return;
-
-            const fullText = message || stationCode || '';
-            try {
-                inputDiv.focus();
-                inputDiv.textContent = fullText;
-                inputDiv.innerText = fullText;
-                inputDiv.dispatchEvent(new InputEvent('input', { bubbles: true, data: fullText, inputType: 'insertText' }));
-            } catch (err) { }
-
-            if (send) {
-                setTimeout(() => {
-                    if (!trySendUsingButton()) {
-                        const ev = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', which: 13, keyCode: 13 });
-                        inputDiv.dispatchEvent(ev);
-                    }
-                }, 180);
-            }
-        });
         return btn;
     }
 
@@ -192,6 +198,7 @@
         wrapper.style.marginTop = '4px';
         wrapper.style.alignItems = 'center';
 
+        // Add pattern buttons first
         if (pattern) {
             if (pattern.gray) wrapper.appendChild(createButton('gray', pattern.grayLabel || 'Check', pattern.gray(stationCode)));
             if (pattern.green) wrapper.appendChild(createButton('green', pattern.greenLabel || 'GT Proceed', pattern.green(stationCode)));
@@ -200,7 +207,12 @@
             if (pattern.purple) wrapper.appendChild(createButton('purple', pattern.purpleLabel || 'Preff', pattern.purple(stationCode)));
         }
 
-        if (ADD_CUSTOM_FALLBACK) wrapper.appendChild(createButton('blue', 'Custom', `${stationCode}`, false));
+        // Add Custom button at the far right
+        if (ADD_CUSTOM_FALLBACK) {
+            const customBtn = createButton('blue', 'Custom', `${stationCode}`, false);
+            customBtn.style.marginLeft = 'auto'; // push to right
+            wrapper.appendChild(customBtn);
+        }
 
         try {
             const parent = msgTextEl.parentElement || msgTextEl;
@@ -303,20 +315,21 @@
 
     function waitForSlackAndStart(retries = 0) {
         const candidate = document.querySelector('[role="presentation"] [role="list"], [data-qa="message_container"], [data-qa="virtual-list"], [aria-label="Messages"]');
-        if (!candidate && retries < 60) { setTimeout(() => waitForSlackAndStart(retries + 1), 500); return; }
-        setTimeout(() => { try { scanAllMessages(); startDomObserver(); startFallbackScanner(); console.log(`GTR v${VERSION} started.`); } catch (e) { } }, 500);
+        if (candidate || retries > 20) {
+            startDomObserver();
+            startFallbackScanner();
+            scanAllMessages();
+        } else setTimeout(() => waitForSlackAndStart(retries + 1), 1000);
     }
-
-    (function injectStyles() {
-        const s = document.createElement('style');
-        s.textContent = `
-            .gtr-multi-btn:hover { opacity: 0.9; transform: scale(1.04); transition: transform .07s; }
-            .gtr-wrapper { display:inline-flex; gap:6px; margin-top:4px; align-items:center; }
-        `;
-        document.head.appendChild(s);
-    })();
 
     waitForSlackAndStart();
 
-})();
+    // Inject minimal CSS for buttons
+    const style = document.createElement('style');
+    style.textContent = `
+        .gtr-wrapper { display:flex; gap:6px; margin-top:4px; align-items:center; }
+        .gtr-multi-btn:hover { opacity:0.85; }
+    `;
+    document.head.appendChild(style);
 
+})();
