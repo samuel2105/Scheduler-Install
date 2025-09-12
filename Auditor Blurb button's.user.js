@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Auditor Blurb's (Full Custom + Patterns)
 // @namespace    http://tampermonkey.net/
-// @author       samumzz(Samuel Sumanth M)
-// @version      8.2
+// @author       samumzz(Samuel Sumanth kumar M)
+// @version      8.3
 // @description  GT Buttons for Slack — all patterns with fallback Custom button
 // @match        https://app.slack.com/client/E015GUGD2V6/C07RAGBM36G*
 // @match        https://app.slack.com/client/E015GUGD2V6/C07NS9SLFQC*
@@ -319,3 +319,4 @@
     waitForSlackAndStart();
 
 })();
+
