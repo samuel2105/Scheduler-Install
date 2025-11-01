@@ -3,7 +3,7 @@
 // @namespace    samumzz.forceinduct.warning
 // @version      1.0
 // @description  ⚠️ Displays a warning popup on the Induct Management dashboard to prevent RSR SSD force induct actions
-// @author       samumzz (Samuel Sumanth M)
+// @author       Madhav krishna
 // @match        https://logistics.amazon.com/station/dashboard/inductManagement*
 // @grant        none
 // @downloadURL  https://github.com/samuel2105/Scheduler-Install/raw/main/RSR%20SSD%20Force%20Induct%20Warning.user.js
